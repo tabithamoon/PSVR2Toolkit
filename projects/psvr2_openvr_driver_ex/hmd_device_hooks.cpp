@@ -30,9 +30,9 @@ namespace psvr2_toolkit {
       vr::VRProperties()->SetBoolProperty(ulPropertyContainer, vr::Prop_DriverProvidedChaperoneVisibility_Bool, false);
     }
 
-    // Tell SteamVR to allow runtime framerate changes.
-    // SteamVR does not allow this feature on AMD GPUs, so this is NVIDIA-only currently.
-    vr::VRProperties()->SetBoolProperty(ulPropertyContainer, vr::Prop_DisplaySupportsRuntimeFramerateChange_Bool, true);
+    // Tell SteamVR to **not** allow runtime framerate changes.
+    // This is to work around a bug with GPU passthrough on my Windows VM.
+    vr::VRProperties()->SetBoolProperty(ulPropertyContainer, vr::Prop_DisplaySupportsRuntimeFramerateChange_Bool, false);
 
     // Tell SteamVR to allow night mode setting.
     vr::VRProperties()->SetBoolProperty(ulPropertyContainer, vr::Prop_DisplayAllowNightMode_Bool, true);
