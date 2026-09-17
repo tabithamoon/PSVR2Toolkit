@@ -8,13 +8,18 @@ add_library(psvr2_openvr_driver_ex SHARED
   driver_hooks/hmd_device_hooks.cpp
   driver_hooks/libpad_hooks.h
   driver_hooks/libpad_hooks.cpp
+  driver_hooks/relocalizer_thread_hooks.h
+  driver_hooks/relocalizer_thread_hooks.cpp
   driver_hooks/sense_device_hooks.cpp
   driver_hooks/usb_thread_hooks.h
   driver_hooks/usb_thread_hooks.cpp
+  driver_hooks/vr_dialog_manager_hooks.h
+  driver_hooks/vr_dialog_manager_hooks.cpp
 
   driver_interface/aston_context.h
   driver_interface/aston_manager.h
   driver_interface/caesar_manager.h
+  driver_interface/config_manager.h
   driver_interface/share_manager.h
   driver_interface/share_manager.cpp
 

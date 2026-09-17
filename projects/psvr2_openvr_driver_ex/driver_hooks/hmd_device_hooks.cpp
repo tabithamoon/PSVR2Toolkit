@@ -1,12 +1,14 @@
 #include "driver_interface/caesar_manager.h"
+#include "driver_interface/config_manager.h"
 #include "driver_interface/share_manager.h"
 #include "driver_host_proxy.h"
 #include "hmd2_gaze.h"
 #include "hmd_device_camera.h"
 #include "hmd_device_hooks.h"
 #include "hmd_driver_loader.h"
-#include "hook_lib.h"
-#include "vr_settings.h"
+#include "utils/hook_lib.h"
+#include "openvr_driver.h"
+#include "utils/driver_settings.h"
 #include "hmd_math.h"
 #include "util.h"
 
@@ -37,6 +39,14 @@ vr::EVRInitError sie__psvr2__HmdDevice__ActivateHook(void *thisptr, uint32_t unO
     for (int e = 0; e < 2; ++e) {
       vr::EVREye eye = static_cast<vr::EVREye>(e);
       vr::ETrackedPropertyError err;
+
+      if (DriverSettings::GetBool(STEAMVR_SETTINGS_DISABLE_HIDDEN_AREA_MESH, SETTING_DISABLE_HIDDEN_AREA_MESH_DEFAULT_VALUE)) {
+        hamHelpers.SetHiddenArea(eye, vr::k_eHiddenAreaMesh_Standard, nullptr, 0);
+        hamHelpers.SetHiddenArea(eye, vr::k_eHiddenAreaMesh_Inverse, nullptr, 0);
+        hamHelpers.SetHiddenArea(eye, vr::k_eHiddenAreaMesh_LineLoop, nullptr, 0);
+
+        continue;
+      }
 
       uint32_t vertCount = hamHelpers.GetHiddenArea(eye, vr::k_eHiddenAreaMesh_Standard, nullptr, 0, &err);
 
@@ -73,7 +83,7 @@ vr::EVRInitError sie__psvr2__HmdDevice__ActivateHook(void *thisptr, uint32_t unO
   }
 
   // Tell SteamVR we want the chaperone visibility disabled if we're actually disabling the chaperone.
-  if (VRSettings::GetBool(STEAMVR_SETTINGS_DISABLE_CHAPERONE, SETTING_DISABLE_CHAPERONE_DEFAULT_VALUE)) {
+  if (DriverSettings::GetBool(STEAMVR_SETTINGS_DISABLE_CHAPERONE, SETTING_DISABLE_CHAPERONE_DEFAULT_VALUE)) {
     vr::VRProperties()->SetBoolProperty(ulPropertyContainer, vr::Prop_DriverProvidedChaperoneVisibility_Bool, false);
   }
 
@@ -124,7 +134,8 @@ vr::EVRInitError sie__psvr2__HmdDevice__ActivateHook(void *thisptr, uint32_t unO
     vr::HmdMatrix34_t cameraToHeadTransforms[2]{};
 
     ShareManager *pShareManager = ShareManager::GetInstance();
-    if (pShareManager) {
+    ConfigManager *pConfigManager = ConfigManager::getSingleton();
+    if (pShareManager && pConfigManager) {
       uint8_t d0cBuffer[0x800] = {0};
       uint32_t counter = 0;
       pShareManager->ReadCalib_0xd0c(d0cBuffer, &counter);
@@ -133,9 +144,8 @@ vr::EVRInitError sie__psvr2__HmdDevice__ActivateHook(void *thisptr, uint32_t unO
         float *r0_raw = reinterpret_cast<float *>(d0cBuffer + 0x6f0);
         float *r1_raw = reinterpret_cast<float *>(d0cBuffer + 0x7dc);
 
-        // TODO: figure out what values in ConfigManager could give us these numbers.
-        const float headOffsetLeft[3] = {-0.04f, -0.03309f, -0.0935f};
-        const float headOffsetRight[3] = {0.04f, -0.03309f, -0.0935f};
+        const CameraConfig *cam0Cfg = pConfigManager->getCameraConfig(0);
+        const CameraConfig *cam1Cfg = pConfigManager->getCameraConfig(1);
 
         const float radX = -15.0f * std::numbers::pi / 180.0f;
         const float cosX = std::cos(radX);
@@ -151,8 +161,8 @@ vr::EVRInitError sie__psvr2__HmdDevice__ActivateHook(void *thisptr, uint32_t unO
           }
         };
 
-        applyPitchAndOffset(r0_raw, headOffsetLeft, rx15, cameraToHeadTransforms[0]);
-        applyPitchAndOffset(r1_raw, headOffsetRight, rx15, cameraToHeadTransforms[1]);
+        applyPitchAndOffset(r0_raw, cam0Cfg->position, rx15, cameraToHeadTransforms[0]);
+        applyPitchAndOffset(r1_raw, cam1Cfg->position, rx15, cameraToHeadTransforms[1]);
       }
     }
 

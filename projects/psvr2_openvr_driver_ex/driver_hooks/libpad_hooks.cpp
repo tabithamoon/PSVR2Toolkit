@@ -1,10 +1,10 @@
 #include "libpad_hooks.h"
 
 #include "hmd_driver_loader.h"
-#include "hook_lib.h"
+#include "utils/hook_lib.h"
 #include "sense_controller.h"
 #include "util.h"
-#include "vr_settings.h"
+#include "utils/driver_settings.h"
 
 #include <cstdint>
 #include <hidsdi.h>
@@ -598,7 +598,7 @@ int32_t libpad_SendOutputReportHook(int32_t device, const uint8_t *buffer, uint1
 }
 
 static int (*g_fn_libpadIsInitialized)() = nullptr;
-static void (*g_fn_libpadResendDeviceSettings)(int32_t padHandle) = nullptr;
+static uint64_t (*g_fn_libpadResendDeviceSettings)(int32_t padHandle, uint64_t hostTimestamp) = nullptr;
 static void (*g_fn_libpadAppendReceiveDataSense)(int32_t padHandle, ProcessedControllerState *pState, uint8_t isBt) = nullptr;
 static int32_t (*g_fn_libpadCreateDeviceSense)(int32_t padHandle, uint16_t devType, uint16_t subId1, uint32_t devInterface, void *param_132, void *param_1b4,
                                                uint32_t isBt, const void *calibInfo, uint8_t flag) = nullptr;
@@ -840,7 +840,7 @@ void libpad_deviceThreadHook(PadContext *padContext) {
           }
 
           if (*g_p_StopThread == '\0') {
-            g_fn_libpadResendDeviceSettings(padHandle);
+            g_fn_libpadResendDeviceSettings(padHandle, nowMicroseconds);
           }
         }
       }
@@ -869,7 +869,7 @@ void LibpadHooks::InstallHooks() {
   static HmdDriverLoader *pHmdDriverLoader = HmdDriverLoader::Instance();
   uintptr_t baseAddress = pHmdDriverLoader->GetBaseAddress();
 
-  if (VRSettings::GetBool(STEAMVR_SETTINGS_USE_TOOLKIT_SYNC, SETTING_USE_TOOLKIT_SYNC_DEFAULT_VALUE)) {
+  if (DriverSettings::GetBool(STEAMVR_SETTINGS_USE_TOOLKIT_SYNC, SETTING_USE_TOOLKIT_SYNC_DEFAULT_VALUE)) {
     Util::DriverLog("Using custom controller/LED sync...");
 
     ResolveLibpadSymbols(baseAddress);
@@ -903,7 +903,7 @@ void LibpadHooks::InstallHooks() {
                          reinterpret_cast<void **>(&logDeviceTrackingState));
   }
 
-  if (VRSettings::GetBool(STEAMVR_SETTINGS_USE_ENHANCED_HAPTICS, SETTING_USE_TOOLKIT_SYNC_DEFAULT_VALUE)) {
+  if (DriverSettings::GetBool(STEAMVR_SETTINGS_USE_ENHANCED_HAPTICS, SETTING_USE_TOOLKIT_SYNC_DEFAULT_VALUE)) {
     // libpad function for int32_t libpad_SendOutputReport(int32_t handle, uchar * buffer, uint16_t size) @ 0x1CBA20
     HookLib::InstallHook(reinterpret_cast<void *>(pHmdDriverLoader->GetBaseAddress() + 0x1CBA20), reinterpret_cast<void *>(libpad_SendOutputReportHook),
                          reinterpret_cast<void **>(&libpad_SendOutputReport));

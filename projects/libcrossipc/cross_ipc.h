@@ -6,6 +6,10 @@
 #define WINDOWS_IPC
 #endif
 
+#ifndef _MSC_VER
+#define __cdecl __attribute__((ms_abi))
+#endif
+
 #ifdef WINDOWS_IPC
 #ifdef libcrossipc_EXPORTS
 #define CROSS_IPC_API __declspec(dllexport)
@@ -13,7 +17,11 @@
 #define CROSS_IPC_API __declspec(dllimport)
 #endif
 #else
+#ifdef __WINE__
 #define CROSS_IPC_API __attribute__((visibility("default"))) __cdecl
+#else
+#define CROSS_IPC_API __attribute__((visibility("default")))
+#endif
 #endif
 
 class IIpcMutex {
